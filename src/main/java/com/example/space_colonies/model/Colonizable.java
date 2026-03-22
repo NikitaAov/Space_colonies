@@ -1,16 +1,17 @@
 package com.example.space_colonies.model;
 
 /**
- * Колония на планете: население и уровень орбитальной станции (модули).
+ * Базовый класс колоний: общие поля и поведение (типы освоения — Habitable, Mining, Research).
  */
-public class Colony {
-    private String name;
-    private Planet planet;
-    private int population;
-    private int stationLevel;
-    private int maxStationLevel;
+public abstract class Colonizable {
 
-    public Colony(String name, Planet planet, int initialPopulation) {
+    protected String name;
+    protected Planet planet;
+    protected int population;
+    protected int stationLevel;
+    protected int maxStationLevel;
+
+    protected Colonizable(String name, Planet planet, int initialPopulation) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Имя колонии не может быть пустым");
         }
@@ -77,20 +78,22 @@ public class Colony {
             throw new IllegalArgumentException("maxStationLevel должна быть >= 1: " + maxStationLevel);
         }
         this.maxStationLevel = maxStationLevel;
+        this.stationLevel = Math.min(stationLevel, maxStationLevel);
     }
 
-    /** Прирост населения за ход (зависит от пригодности планеты). */
-    public int getPopulationGrowthPerTurn() {
-        int habit = planet.getHabitability();
-        return 10 + habit / 20 + stationLevel * 5;
-    }
+    public abstract String getColonyTypeLabel();
 
-    /** Дополнительная добыча минералов за уровень станции. */
+    public abstract int getPopulationGrowthPerTurn();
+
     public int getStationMineralBonusPerTurn() {
         return stationLevel * 8;
     }
 
-    /** Следующий уровень орбитальной станции (стоимость ресурсов проверяется в игре). */
+    /** Доп. наука за ход при stationLevel >= 1 (переопределяет Research). */
+    public int getSciencePerTurnIfStation() {
+        return 0;
+    }
+
     public boolean upgradeStation() {
         if (stationLevel >= maxStationLevel) {
             return false;
@@ -99,7 +102,6 @@ public class Colony {
         return true;
     }
 
-    /** Стоимость следующего уровня станции в материалах. */
     public int getNextStationBuildCost() {
         if (stationLevel >= maxStationLevel) {
             return -1;
@@ -110,6 +112,6 @@ public class Colony {
     @Override
     public String toString() {
         return name + " на " + planet.getName() + " | население " + population
-                + " | станция ур. " + stationLevel + "/" + maxStationLevel;
+                + " | станция ур. " + stationLevel + "/" + maxStationLevel + " [" + getColonyTypeLabel() + "]";
     }
 }

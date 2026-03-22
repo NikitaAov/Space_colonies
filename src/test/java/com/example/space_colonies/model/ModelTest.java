@@ -32,7 +32,7 @@ class ModelTest {
         Position p = new Position(1, 1);
         Planet planet = new Planet("P1", p, 50, 40);
         assertFalse(planet.isColonized());
-        Colony c = new Colony("C1", planet, 100);
+        Habitable c = new Habitable("C1", planet, 100);
         assertTrue(planet.establishColony(c));
         assertTrue(planet.isColonized());
         assertThrows(IllegalArgumentException.class, () -> new Planet("", p, 50, 50));
@@ -47,8 +47,8 @@ class ModelTest {
 
     @Test
     void technologyResearch() {
-        Technology t = new Technology("T", 2, 10, 3, 0);
-        assertEquals(10, t.getNextLevelCost());
+        MiningAutomationTech t = new MiningAutomationTech();
+        assertEquals(40, t.getNextLevelCost());
         assertTrue(t.researchLevel());
         assertEquals(1, t.getLevel());
     }
@@ -59,6 +59,6 @@ class ModelTest {
         Planet pl = new Planet("X", new Position(2, 2), 60, 60);
         assertTrue(map.placePlanet(pl));
         assertEquals(pl, map.getPlanetAt(new Position(2, 2)));
-        assertFalse(map.placePlanet(new Planet("Y", new Position(2, 2), 50, 50)));
+        assertFalse(map.placeSpaceObject(new Planet("Y", new Position(2, 2), 50, 50)));
     }
 }

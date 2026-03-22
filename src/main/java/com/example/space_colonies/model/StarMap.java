@@ -1,12 +1,12 @@
 package com.example.space_colonies.model;
 
 /**
- * Сетка секторов с планетами
+ * Сетка секторов с объектами
  */
 public class StarMap {
     private final int width;
     private final int height;
-    private final Planet[][] planets;
+    private final SpaceObject[][] cells;
 
     public StarMap(int width, int height) {
         if (width <= 0 || height <= 0) {
@@ -14,7 +14,7 @@ public class StarMap {
         }
         this.width = width;
         this.height = height;
-        this.planets = new Planet[width][height];
+        this.cells = new SpaceObject[width][height];
     }
 
     public int getWidth() {
@@ -34,35 +34,45 @@ public class StarMap {
         return x >= 0 && x < width && y >= 0 && y < height;
     }
 
-    public boolean placePlanet(Planet planet) {
-        if (planet == null) {
-            throw new IllegalArgumentException("planet не может быть null");
+    public boolean placeSpaceObject(SpaceObject object) {
+        if (object == null) {
+            throw new IllegalArgumentException("object не может быть null");
         }
-        Position pos = planet.getPosition();
+        Position pos = object.getPosition();
         if (!isValidPosition(pos)) {
             return false;
         }
         int x = pos.getX();
         int y = pos.getY();
-        if (planets[x][y] != null) {
+        if (cells[x][y] != null) {
             return false;
         }
-        planets[x][y] = planet;
+        cells[x][y] = object;
         return true;
     }
 
-    public Planet getPlanetAt(Position position) {
+    /** Удобный метод для планет. */
+    public boolean placePlanet(Planet planet) {
+        return placeSpaceObject(planet);
+    }
+
+    public SpaceObject getSpaceObjectAt(Position position) {
         if (!isValidPosition(position)) {
             return null;
         }
-        return planets[position.getX()][position.getY()];
+        return cells[position.getX()][position.getY()];
     }
 
-    public void removePlanetAt(Position position) {
+    public Planet getPlanetAt(Position position) {
+        SpaceObject o = getSpaceObjectAt(position);
+        return o instanceof Planet p ? p : null;
+    }
+
+    public void removeAt(Position position) {
         if (!isValidPosition(position)) {
             return;
         }
-        planets[position.getX()][position.getY()] = null;
+        cells[position.getX()][position.getY()] = null;
     }
 
     @Override

@@ -1,9 +1,16 @@
 package com.example.space_colonies;
 
-import com.example.space_colonies.model.Colony;
+import com.example.space_colonies.model.Colonizable;
+import com.example.space_colonies.model.Habitable;
+import com.example.space_colonies.model.HyperdriveTech;
+import com.example.space_colonies.model.Mining;
+import com.example.space_colonies.model.MiningAutomationTech;
 import com.example.space_colonies.model.Planet;
 import com.example.space_colonies.model.Position;
+import com.example.space_colonies.model.Research;
 import com.example.space_colonies.model.Resource;
+import com.example.space_colonies.model.SpaceObject;
+import com.example.space_colonies.model.SpaceObjectFactory;
 import com.example.space_colonies.model.Spaceship;
 import com.example.space_colonies.model.StarMap;
 import com.example.space_colonies.model.Technology;
@@ -18,6 +25,7 @@ import java.util.Optional;
 import java.util.Scanner;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+
 public class Game {
 
     static {
@@ -29,7 +37,6 @@ public class Game {
             System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out), true, UTF_8));
             System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err), true, UTF_8));
         } catch (Exception ignored) {
-            // оставляем стандартные потоки
         }
     }
 
@@ -39,8 +46,8 @@ public class Game {
 
     private final StarMap starMap;
     private final List<Resource> resources;
-    private final List<Planet> planets;
-    private final List<Colony> colonies;
+    private final List<SpaceObject> spaceObjects;
+    private final List<Colonizable> colonies;
     private final List<Technology> technologies;
     private Spaceship flagship;
     private int turnNumber;
@@ -49,7 +56,7 @@ public class Game {
     public Game() {
         this.starMap = new StarMap(MAP_SIZE, MAP_SIZE);
         this.resources = new ArrayList<>();
-        this.planets = new ArrayList<>();
+        this.spaceObjects = new ArrayList<>();
         this.colonies = new ArrayList<>();
         this.technologies = new ArrayList<>();
         this.turnNumber = 1;
@@ -72,23 +79,25 @@ public class Game {
                 3,
                 100);
 
-        technologies.add(new Technology("Автоматизированная добыча", 3, 40, 5, 0));
-        technologies.add(new Technology("Гипердвигатель", 3, 35, 0, 1));
+        technologies.add(new MiningAutomationTech());
+        technologies.add(new HyperdriveTech());
 
-        planets.clear();
+        spaceObjects.clear();
         colonies.clear();
 
-        addPlanet(new Planet("Кеплер-442b", new Position(2, 1), 72, 55));
-        addPlanet(new Planet("Проксима-III", new Position(5, 3), 45, 80));
-        addPlanet(new Planet("Тау Кита", new Position(3, 6), 88, 30));
-        addPlanet(new Planet("Глизе-581g", new Position(7, 7), 60, 65));
+        addSpaceObject(new Planet("Кеплер-442b", new Position(2, 1), 72, 55));
+        addSpaceObject(new Planet("Проксима-III", new Position(5, 3), 45, 80));
+        addSpaceObject(new Planet("Тау Кита", new Position(3, 6), 88, 30));
+        addSpaceObject(new Planet("Глизе-581g", new Position(7, 7), 60, 65));
+        addSpaceObject(SpaceObjectFactory.createAsteroid("Пояс η", new Position(1, 4), 3, 70));
+        addSpaceObject(SpaceObjectFactory.createStation("Станция «Рубикон»", new Position(4, 2), 2));
     }
 
-    private void addPlanet(Planet planet) {
-        planets.add(planet);
-        if (!starMap.placePlanet(planet)) {
-            throw new IllegalStateException("Не удалось разместить планету: " + planet.getName());
+    private void addSpaceObject(SpaceObject object) {
+        if (!starMap.placeSpaceObject(object)) {
+            throw new IllegalStateException("Не удалось разместить объект: " + object.getName());
         }
+        spaceObjects.add(object);
     }
 
     private Optional<Resource> resourceByName(String name) {
@@ -104,9 +113,12 @@ public class Game {
         return technologies.stream().mapToInt(Technology::getTotalMineralBonusPercent).sum();
     }
 
-    /** Движение корабля и вывод состояния. */
+    /** Полиморфное обновление объектов карты и движение корабля. */
     public void playTurn() {
         System.out.println("=== Ход " + turnNumber + " ===");
+        for (SpaceObject object : spaceObjects) {
+            object.update();
+        }
         displayGameState();
         Position current = flagship.getPosition();
         Position probe = new Position(Math.min(MAP_SIZE - 1, current.getX() + 1), current.getY());
@@ -124,15 +136,15 @@ public class Game {
         for (Resource resource : resources) {
             System.out.println("  " + resource);
         }
-        System.out.println("Планеты:");
-        for (Planet planet : planets) {
-            System.out.println("  " + planet);
+        System.out.println("Объекты на карте:");
+        for (SpaceObject object : spaceObjects) {
+            System.out.println("  " + object.getDescription());
         }
         System.out.println("Колонии:");
         if (colonies.isEmpty()) {
             System.out.println("  (нет)");
         } else {
-            for (Colony colony : colonies) {
+            for (Colonizable colony : colonies) {
                 System.out.println("  " + colony);
             }
         }
@@ -149,21 +161,23 @@ public class Game {
         Optional<Resource> energy = resourceByName("Энергия");
         Optional<Resource> science = resourceByName("Наука");
 
-        for (Colony colony : colonies) {
+        for (Colonizable colony : colonies) {
             Planet p = colony.getPlanet();
             int rawYield = p.getBaseMineralYieldPerTurn() + colony.getStationMineralBonusPerTurn();
             final int mineralYield = rawYield * (100 + mineralBonus) / 100;
             minerals.ifPresent(m -> m.addAmount(Math.min(mineralYield, m.getMaxAmount() - m.getAmount())));
             energy.ifPresent(e -> e.addAmount(Math.min(25 + colony.getStationLevel() * 5, e.getMaxAmount() - e.getAmount())));
             if (colony.getStationLevel() >= 1) {
-                science.ifPresent(s -> s.addAmount(Math.min(8, s.getMaxAmount() - s.getAmount())));
+                int sciBonus = colony.getSciencePerTurnIfStation();
+                int addSci = sciBonus > 0 ? sciBonus : 8;
+                science.ifPresent(s -> s.addAmount(Math.min(addSci, s.getMaxAmount() - s.getAmount())));
             }
             int growth = colony.getPopulationGrowthPerTurn();
             colony.setPopulation(colony.getPopulation() + growth);
         }
     }
 
-    private boolean tryColonize() {
+    private boolean tryColonize(Scanner scanner) {
         Planet here = starMap.getPlanetAt(flagship.getPosition());
         if (here == null) {
             System.out.println("Здесь нет планеты.");
@@ -172,6 +186,19 @@ public class Game {
         if (here.isColonized()) {
             System.out.println("Планета уже освоена.");
             return false;
+        }
+        System.out.println("Тип колонии: 1 — Обитаемая, 2 — Добывающая, 3 — Исследовательская");
+        String typeLine = scanner.nextLine().trim();
+        Colonizable colony;
+        String colonyName = "База «" + here.getName() + "»";
+        switch (typeLine) {
+            case "1" -> colony = new Habitable(colonyName, here, 200);
+            case "2" -> colony = new Mining(colonyName, here, 200);
+            case "3" -> colony = new Research(colonyName, here, 200);
+            default -> {
+                System.out.println("Некорректный тип, по умолчанию — обитаемая.");
+                colony = new Habitable(colonyName, here, 200);
+            }
         }
         int energyCost = here.getColonizationEnergyCost();
         int materialCost = 280;
@@ -189,8 +216,6 @@ public class Game {
             System.out.println("Недостаточно материалов (нужно " + materialCost + ").");
             return false;
         }
-        String colonyName = "База «" + here.getName() + "»";
-        Colony colony = new Colony(colonyName, here, 200);
         if (!here.establishColony(colony)) {
             energy.get().addAmount(energyCost);
             materials.get().addAmount(materialCost);
@@ -222,7 +247,7 @@ public class Game {
             System.out.println("Нет такой колонии.");
             return false;
         }
-        Colony colony = colonies.get(idx);
+        Colonizable colony = colonies.get(idx);
         int cost = colony.getNextStationBuildCost();
         if (cost < 0) {
             System.out.println("Станция максимального уровня.");
@@ -320,7 +345,7 @@ public class Game {
         if (colonies.size() >= WIN_COLONIES) {
             return true;
         }
-        int sum = colonies.stream().mapToInt(Colony::getStationLevel).sum();
+        int sum = colonies.stream().mapToInt(Colonizable::getStationLevel).sum();
         return sum >= WIN_STATION_LEVEL_SUM;
     }
 
@@ -331,13 +356,16 @@ public class Game {
         while (!finished) {
             System.out.println();
             System.out.println("—— Ход " + turnNumber + " ——");
+            for (SpaceObject object : spaceObjects) {
+                object.update();
+            }
             displayGameState();
             System.out.println("Команды: 1 — ход корабля | 2 — колонизировать | 3 — улучшить станцию | "
                     + "4 — исследование | 5 — завершить ход | 0 — выход");
             String cmd = scanner.nextLine().trim();
             switch (cmd) {
                 case "1" -> tryMoveShip(scanner);
-                case "2" -> tryColonize();
+                case "2" -> tryColonize(scanner);
                 case "3" -> tryBuildStation(scanner);
                 case "4" -> tryResearch(scanner);
                 case "5" -> {

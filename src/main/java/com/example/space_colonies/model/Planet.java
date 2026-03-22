@@ -1,51 +1,23 @@
 package com.example.space_colonies.model;
 
 /**
- * Планета на карте: пригодность, минералы, колония (если освоена).
+ * Планета: небесное тело с атмосферой и возможностью колонизации.
  */
-public class Planet {
-    private String name;
-    private Position position;
-    /** Пригодность для жизни, 0–100 */
+public class Planet extends CelestialBody {
+
     private int habitability;
-    /** Богатство недр, 0–100 */
     private int mineralRichness;
-    private Colony colony;
+    private Colonizable colony;
 
     public Planet(String name, Position position, int habitability, int mineralRichness) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Имя планеты не может быть пустым");
-        }
-        if (position == null) {
-            throw new IllegalArgumentException("position не может быть null");
-        }
+        this(name, position, habitability, mineralRichness, 5);
+    }
+
+    public Planet(String name, Position position, int habitability, int mineralRichness, int massClass) {
+        super(name, position, massClass);
         setHabitability(habitability);
         setMineralRichness(mineralRichness);
-        this.name = name;
-        this.position = position;
         this.colony = null;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Имя планеты не может быть пустым");
-        }
-        this.name = name;
-    }
-
-    public Position getPosition() {
-        return position;
-    }
-
-    public void setPosition(Position position) {
-        if (position == null) {
-            throw new IllegalArgumentException("position не может быть null");
-        }
-        this.position = position;
     }
 
     public int getHabitability() {
@@ -70,7 +42,7 @@ public class Planet {
         this.mineralRichness = mineralRichness;
     }
 
-    public Colony getColony() {
+    public Colonizable getColony() {
         return colony;
     }
 
@@ -78,10 +50,7 @@ public class Planet {
         return colony != null;
     }
 
-    /**
-     * Осваивает планету: создаёт колонию. Планета должна быть свободна.
-     */
-    public boolean establishColony(Colony newColony) {
+    public boolean establishColony(Colonizable newColony) {
         if (newColony == null) {
             throw new IllegalArgumentException("newColony не может быть null");
         }
@@ -92,19 +61,32 @@ public class Planet {
         return true;
     }
 
-    /** Базовая стоимость колонизации (энергия), чем ниже пригодность — тем дороже. */
     public int getColonizationEnergyCost() {
         return 200 + (100 - habitability) * 2;
     }
 
-    /** Минералы с планеты за ход (до модификаторов станций). */
     public int getBaseMineralYieldPerTurn() {
         return 5 + mineralRichness / 10;
     }
 
     @Override
-    public String toString() {
+    protected void onCelestialTurn() {
+        // климат/орбита — без побочных эффектов в базовой лабе
+    }
+
+    @Override
+    public String getDescription() {
         String status = isColonized() ? "колония: " + colony.getName() : "не освоена";
         return name + " " + position + " | пригодность " + habitability + "%, руда " + mineralRichness + "% | " + status;
+    }
+
+    @Override
+    public String scanReport() {
+        return "Планета «" + name + "»: пригодность " + habitability + "%, минералы " + mineralRichness + "%.";
+    }
+
+    @Override
+    public String toString() {
+        return getDescription();
     }
 }
