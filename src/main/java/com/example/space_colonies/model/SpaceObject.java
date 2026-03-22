@@ -1,7 +1,7 @@
 package com.example.space_colonies.model;
 
 /**
- * Базовый класс объектов на звёздной карте (лаб. 2: космическая колонизация).
+ * Базовый класс объектов на звёздной карте
  */
 public abstract class SpaceObject implements Scannable {
     protected String name;

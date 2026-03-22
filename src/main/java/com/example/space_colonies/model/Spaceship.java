@@ -1,7 +1,7 @@
 package com.example.space_colonies.model;
 
 /**
- * Космический корабль: перемещение, топливо, груз для колонизации (лаб. 3: {@link Movable}, {@link Combatable}).
+ * Космический корабль: перемещение, топливо, груз для колонизации. Реализует Movable и Combatable.
  */
 public class Spaceship implements Movable, Combatable {
     private String name;

@@ -96,7 +96,7 @@ public class Planet extends CelestialBody implements Producible {
 
     @Override
     protected void onCelestialTurn() {
-        // климат/орбита — без побочных эффектов в базовой лабе
+        // климат/орбита — без побочных эффектов в базовой модели
     }
 
     @Override

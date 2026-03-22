@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Игровой ресурс с ограничением по максимуму (лаб. 3: {@link Tradeable}, {@link Comparable}).
+ * Игровой ресурс с ограничением по максимуму. Реализует Tradeable и Comparable.
  */
 public class Resource implements Tradeable, Comparable<Resource>, Serializable {
 

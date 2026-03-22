@@ -1,8 +1,10 @@
 package com.example.space_colonies;
 
+import com.example.space_colonies.model.CargoItem;
 import com.example.space_colonies.model.Colonizable;
 import com.example.space_colonies.model.Habitable;
 import com.example.space_colonies.model.HyperdriveTech;
+import com.example.space_colonies.model.Inventory;
 import com.example.space_colonies.model.Mining;
 import com.example.space_colonies.model.MiningAutomationTech;
 import com.example.space_colonies.model.Planet;
@@ -10,10 +12,13 @@ import com.example.space_colonies.model.Position;
 import com.example.space_colonies.model.Research;
 import com.example.space_colonies.model.Resource;
 import com.example.space_colonies.model.SpaceObject;
+import com.example.space_colonies.model.SpaceObjectCollection;
 import com.example.space_colonies.model.SpaceObjectFactory;
 import com.example.space_colonies.model.Spaceship;
 import com.example.space_colonies.model.StarMap;
+import com.example.space_colonies.model.StarSystemRegistry;
 import com.example.space_colonies.model.Technology;
+import com.example.space_colonies.model.TechnologyManager;
 
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
@@ -21,6 +26,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Scanner;
 
@@ -50,6 +56,10 @@ public class Game {
     private final List<Colonizable> colonies;
     private final List<Technology> technologies;
     private final GameManager gameManager;
+    private final SpaceObjectCollection<Planet> planetCollection;
+    private final TechnologyManager<Technology> technologyManager;
+    private final Inventory<CargoItem> shipInventory;
+    private final StarSystemRegistry starSystemRegistry;
     private Spaceship flagship;
     private int turnNumber;
     private boolean finished;
@@ -61,13 +71,17 @@ public class Game {
         this.colonies = new ArrayList<>();
         this.technologies = new ArrayList<>();
         this.gameManager = new GameManager();
+        this.planetCollection = new SpaceObjectCollection<>();
+        this.technologyManager = new TechnologyManager<>();
+        this.shipInventory = new Inventory<>(32);
+        this.starSystemRegistry = new StarSystemRegistry();
         this.turnNumber = 1;
         this.finished = false;
         initializeGame();
         registerInterfaceEntities();
     }
 
-    /** Регистрация объектов в менеджере по интерфейсам (лаб. 3). */
+    /** Регистрация объектов в менеджере по интерфейсам. */
     private void registerInterfaceEntities() {
         gameManager.addMovable(flagship);
         gameManager.addCombatable(flagship);
@@ -102,8 +116,17 @@ public class Game {
         technologies.add(new MiningAutomationTech());
         technologies.add(new HyperdriveTech());
 
+        technologyManager.clear();
+        for (Technology t : technologies) {
+            technologyManager.addTechnology(t);
+        }
+
         spaceObjects.clear();
         colonies.clear();
+        planetCollection.clear();
+        starSystemRegistry.clear();
+        shipInventory.clear();
+        loadShipInventoryDemo();
 
         addSpaceObject(new Planet("Кеплер-442b", new Position(2, 1), 72, 55));
         addSpaceObject(new Planet("Проксима-III", new Position(5, 3), 45, 80));
@@ -113,11 +136,40 @@ public class Game {
         addSpaceObject(SpaceObjectFactory.createStation("Станция «Рубикон»", new Position(4, 2), 2));
     }
 
+    private void loadShipInventoryDemo() {
+        shipInventory.addItem("отсек-1", new CargoItem("Реакторный стабилизатор", 12));
+        shipInventory.addItem("отсек-2", new CargoItem("Запас провианта", 8));
+        shipInventory.addItem("отсек-3", new CargoItem("Модуль связи", 5));
+    }
+
+    private static String inferStarSystemName(String planetName) {
+        if (planetName == null) {
+            return "Неизвестный сектор";
+        }
+        if (planetName.contains("Кеплер")) {
+            return "Система Кеплер";
+        }
+        if (planetName.contains("Проксима")) {
+            return "Проксима Центавра";
+        }
+        if (planetName.contains("Тау")) {
+            return "Тау Кита";
+        }
+        if (planetName.contains("Глизе")) {
+            return "Глизе 581";
+        }
+        return "Пограничные миры";
+    }
+
     private void addSpaceObject(SpaceObject object) {
         if (!starMap.placeSpaceObject(object)) {
             throw new IllegalStateException("Не удалось разместить объект: " + object.getName());
         }
         spaceObjects.add(object);
+        if (object instanceof Planet planet) {
+            planetCollection.add(planet);
+            starSystemRegistry.registerPlanet(inferStarSystemName(planet.getName()), planet);
+        }
     }
 
     private Optional<Resource> resourceByName(String name) {
@@ -177,6 +229,29 @@ public class Game {
         for (Technology t : technologies) {
             System.out.println("  " + t);
         }
+        System.out.println("[Коллекции] планет в индексе: " + planetCollection.size()
+                + " | масса груза в трюме: " + shipInventory.totalCargoMass()
+                + " | уровней науки (сумма): " + technologyManager.totalResearchLevels());
+    }
+
+    /** Вывод сводки по коллекциям и индексам (планеты, технологии, трюм, системы). */
+    public void printCollectionsDemo() {
+        System.out.println("—— Демонстрация коллекций ——");
+        planetCollection.sortByName();
+        System.out.println("Планеты по имени:");
+        for (Planet p : planetCollection.getAll()) {
+            System.out.println("  " + p.getName() + " @ " + p.getPosition());
+        }
+        Position hub = new Position(4, 4);
+        List<Planet> near = planetCollection.findInRange(hub, 4.5);
+        System.out.println("Планеты в радиусе 4.5 от " + hub + ": " + near.size());
+
+        Map<String, Integer> byCat = technologyManager.summaryByCategory();
+        System.out.println("Технологии по категориям (сумма уровней): " + byCat);
+
+        System.out.println("Звёздные системы: " + starSystemRegistry.getSystemNames());
+        System.out.println("Трюм корабля: " + shipInventory.describeSlots());
+        System.out.println("Системы с колониями (по реестру): " + starSystemRegistry.systemsWithKnownColonies());
     }
 
     private void applyEndOfTurnEconomy() {
@@ -247,6 +322,7 @@ public class Game {
             return false;
         }
         colonies.add(colony);
+        starSystemRegistry.markColonizedPlanet(here.getName());
         System.out.println("Колония основана: " + colony);
         return true;
     }
@@ -421,6 +497,7 @@ public class Game {
                 game.playTurn();
                 System.out.println();
             }
+            game.printCollectionsDemo();
             return;
         }
         game.runConsole();

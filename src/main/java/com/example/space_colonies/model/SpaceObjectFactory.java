@@ -1,7 +1,7 @@
 package com.example.space_colonies.model;
 
 /**
- * Фабрика объектов карты (лаб. 2, доп.).
+ * Фабрика объектов карты.
  */
 public final class SpaceObjectFactory {
 

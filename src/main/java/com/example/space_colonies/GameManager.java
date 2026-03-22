@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Полиморфная работа с сущностями по интерфейсам (лаб. 3).
+ * Полиморфная работа с сущностями по интерфейсам.
  */
 public class GameManager {
 
@@ -71,7 +71,7 @@ public class GameManager {
         return total;
     }
 
-    /** Исследование без траты науки (демонстрация интерфейса); в реальной игре уровни даёт {@link com.example.space_colonies.Game#tryResearch}. */
+    /** Исследование без траты науки (демонстрация интерфейса); в реальной игре уровни даёт Game.tryResearch(). */
     public void researchAllTechnologiesOneStep() {
         for (Upgradeable u : upgradeableEntities) {
             if (u instanceof Technology && u.canUpgrade()) {
