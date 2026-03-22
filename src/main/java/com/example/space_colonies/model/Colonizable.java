@@ -3,7 +3,7 @@ package com.example.space_colonies.model;
 /**
  * Базовый класс колоний: общие поля и поведение (типы освоения — Habitable, Mining, Research).
  */
-public abstract class Colonizable {
+public abstract class Colonizable implements Upgradeable {
 
     protected String name;
     protected Planet planet;
@@ -107,6 +107,37 @@ public abstract class Colonizable {
             return -1;
         }
         return 150 + stationLevel * 100;
+    }
+
+    @Override
+    public boolean upgrade() {
+        return upgradeStation();
+    }
+
+    @Override
+    public int getLevel() {
+        return stationLevel;
+    }
+
+    @Override
+    public int getMaxLevel() {
+        return maxStationLevel;
+    }
+
+    @Override
+    public boolean canUpgrade() {
+        return stationLevel < maxStationLevel;
+    }
+
+    @Override
+    public int getUpgradeCost() {
+        int c = getNextStationBuildCost();
+        return Math.max(0, c);
+    }
+
+    @Override
+    public String getLevelBonuses() {
+        return "Станция ур. " + stationLevel + ": +" + (stationLevel * 8) + " к добыче минералов";
     }
 
     @Override

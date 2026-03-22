@@ -1,9 +1,9 @@
 package com.example.space_colonies.model;
 
 /**
- * Космический корабль: перемещение, топливо, груз для колонизации.
+ * Космический корабль: перемещение, топливо, груз для колонизации (лаб. 3: {@link Movable}, {@link Combatable}).
  */
-public class Spaceship {
+public class Spaceship implements Movable, Combatable {
     private String name;
     private Position position;
     private int fuel;
@@ -212,13 +212,6 @@ public class Spaceship {
         return false;
     }
 
-    public void takeDamage(int damage) {
-        if (damage < 0) {
-            throw new IllegalArgumentException("damage не может быть отрицательным");
-        }
-        hull = Math.max(0, hull - damage);
-    }
-
     public void repair(int amount) {
         if (amount < 0) {
             throw new IllegalArgumentException("amount не может быть отрицательным");
@@ -235,6 +228,64 @@ public class Spaceship {
             throw new IllegalArgumentException("amount не может быть отрицательным");
         }
         fuel = Math.min(maxFuel, fuel + amount);
+    }
+
+    @Override
+    public boolean canMoveTo(Position position) {
+        if (position == null) {
+            return false;
+        }
+        return position.distanceTo(this.position) <= movementRange + 1e-9;
+    }
+
+    @Override
+    public Position getCurrentPosition() {
+        return position;
+    }
+
+    @Override
+    public int getAttack() {
+        return Math.max(5, maxHull / 8);
+    }
+
+    @Override
+    public int getDefense() {
+        return Math.max(2, maxHull / 12);
+    }
+
+    @Override
+    public boolean isAlive() {
+        return hull > 0;
+    }
+
+    @Override
+    public boolean canAttack(Combatable target) {
+        if (!isAlive() || target == null || !target.isAlive()) {
+            return false;
+        }
+        if (target instanceof Spaceship other) {
+            return position.distanceTo(other.position) <= 1.5 + 1e-9;
+        }
+        return false;
+    }
+
+    @Override
+    public int attack(Combatable target) {
+        if (!canAttack(target)) {
+            return 0;
+        }
+        int dmg = getAttack() + (int) (Math.random() * 4);
+        target.takeDamage(dmg);
+        return dmg;
+    }
+
+    @Override
+    public void takeDamage(int damage) {
+        if (damage < 0) {
+            throw new IllegalArgumentException("damage не может быть отрицательным");
+        }
+        int actual = Math.max(1, damage - getDefense());
+        hull = Math.max(0, hull - actual);
     }
 
     @Override

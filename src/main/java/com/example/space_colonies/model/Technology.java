@@ -3,7 +3,7 @@ package com.example.space_colonies.model;
 /**
  * Базовый класс исследуемых технологий
  */
-public abstract class Technology {
+public abstract class Technology implements Upgradeable {
 
     protected String name;
     protected int level;
@@ -61,6 +61,27 @@ public abstract class Technology {
         }
         level++;
         return true;
+    }
+
+    @Override
+    public boolean upgrade() {
+        return researchLevel();
+    }
+
+    @Override
+    public boolean canUpgrade() {
+        return level < maxLevel;
+    }
+
+    @Override
+    public int getUpgradeCost() {
+        int c = getNextLevelCost();
+        return Math.max(0, c);
+    }
+
+    @Override
+    public String getLevelBonuses() {
+        return "+" + getTotalMineralBonusPercent() + "% минералов, +" + getTotalShipRangeBonus() + " дальность корабля";
     }
 
     public final int getTotalMineralBonusPercent() {

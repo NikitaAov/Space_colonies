@@ -49,6 +49,7 @@ public class Game {
     private final List<SpaceObject> spaceObjects;
     private final List<Colonizable> colonies;
     private final List<Technology> technologies;
+    private final GameManager gameManager;
     private Spaceship flagship;
     private int turnNumber;
     private boolean finished;
@@ -59,17 +60,36 @@ public class Game {
         this.spaceObjects = new ArrayList<>();
         this.colonies = new ArrayList<>();
         this.technologies = new ArrayList<>();
+        this.gameManager = new GameManager();
         this.turnNumber = 1;
         this.finished = false;
         initializeGame();
+        registerInterfaceEntities();
+    }
+
+    /** Регистрация объектов в менеджере по интерфейсам (лаб. 3). */
+    private void registerInterfaceEntities() {
+        gameManager.addMovable(flagship);
+        gameManager.addCombatable(flagship);
+        for (SpaceObject object : spaceObjects) {
+            if (object instanceof Planet planet) {
+                gameManager.addProducible(planet);
+            }
+        }
+        for (Technology technology : technologies) {
+            gameManager.addUpgradeableTechnology(technology);
+        }
+        for (Resource resource : resources) {
+            gameManager.addTradeable(resource);
+        }
     }
 
     private void initializeGame() {
         resources.clear();
-        resources.add(new Resource("Энергия", 800, 5000));
-        resources.add(new Resource("Минералы", 400, 8000));
-        resources.add(new Resource("Материалы", 350, 4000));
-        resources.add(new Resource("Наука", 120, 2000));
+        resources.add(new Resource("Энергия", 800, 5000, 1));
+        resources.add(new Resource("Минералы", 400, 8000, 2));
+        resources.add(new Resource("Материалы", 350, 4000, 2));
+        resources.add(new Resource("Наука", 120, 2000, 3));
 
         flagship = new Spaceship(
                 "Пионер-1",
@@ -127,6 +147,10 @@ public class Game {
         } else {
             System.out.println("Корабль остался на месте (недостаточно топлива или вне досягаемости).");
         }
+        int planetYieldSum = gameManager.processAllProduction();
+        System.out.println("[GameManager] сумма базовых ставок добычи планет: " + planetYieldSum
+                + " | торговая ценность запасов: " + gameManager.getTotalTradeValue());
+        gameManager.displayCombatSnapshot();
         applyEndOfTurnEconomy();
         turnNumber++;
     }

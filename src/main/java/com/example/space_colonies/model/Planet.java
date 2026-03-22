@@ -3,7 +3,7 @@ package com.example.space_colonies.model;
 /**
  * Планета: небесное тело с атмосферой и возможностью колонизации.
  */
-public class Planet extends CelestialBody {
+public class Planet extends CelestialBody implements Producible {
 
     private int habitability;
     private int mineralRichness;
@@ -67,6 +67,31 @@ public class Planet extends CelestialBody {
 
     public int getBaseMineralYieldPerTurn() {
         return 5 + mineralRichness / 10;
+    }
+
+    @Override
+    public int produce() {
+        return getProductionRate();
+    }
+
+    @Override
+    public int getProductionRate() {
+        return getBaseMineralYieldPerTurn();
+    }
+
+    @Override
+    public boolean canProduce() {
+        return isActive();
+    }
+
+    @Override
+    public int getProductionCost() {
+        return 0;
+    }
+
+    @Override
+    public String getProductType() {
+        return "Минералы";
     }
 
     @Override
